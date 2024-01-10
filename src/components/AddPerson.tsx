@@ -1,10 +1,16 @@
-import React, { useState, ChangeEvent } from "react";
+import React, { useState, ChangeEvent, useEffect } from "react";
 import TutorialDataService from "../services/PersonService";
 import ITutorialData from '../types/Person';
 import IPerson from "../types/Person";
 import PersonService from "../services/PersonService";
+import { useNavigate, useParams } from "react-router-dom";
 
 const AddPerson: React.FC = () => {
+
+  const { id }= useParams();
+  let navigate = useNavigate();
+  const [operation, setOperation] = useState<string>("ADD");
+
   const initialPersonState = {
     id: null,
     firstName: "",
@@ -20,7 +26,7 @@ const AddPerson: React.FC = () => {
     setPerson({ ...person, [name]: value });
   };
 
-  const savePerson = () => {
+  const addPerson = () => {
     var data = {
       lastName: person.lastName,
       firstName: person.firstName,
@@ -29,6 +35,33 @@ const AddPerson: React.FC = () => {
     };
 
     PersonService.create(data)
+    .then((response: any) => {
+      setPerson({
+        firstName: response.data.firstName,
+        lastName: response.data.lastName,
+        address: response.data.address,
+        phone: response.data.phone
+      });
+      setSubmitted(true);
+      console.log(response.data);
+    })
+    .catch((e: Error) => {
+      console.log(e);
+    });
+    
+  };
+
+  const updatePerson = () => {
+    var data = {
+      id: person.id,
+      lastName: person.lastName,
+      firstName: person.firstName,
+      address: person.address,
+      phone: person.phone
+    };
+
+    if(id){
+      PersonService.update(id, data)
       .then((response: any) => {
         setPerson({
           id: response.data.id,
@@ -38,6 +71,43 @@ const AddPerson: React.FC = () => {
           phone: response.data.phone
         });
         setSubmitted(true);
+        setOperation("");
+        console.log(response.data);
+      })
+      .catch((e: Error) => {
+        console.log(e);
+      });
+    }
+  };
+
+  const deletePerson = () => {
+    
+    if(id){
+      PersonService.remove(id)
+      .then((response: any) => {
+        console.log(response.data);
+        navigate("/person");
+
+      })
+      .catch((e: Error) => {
+        console.log(e);
+      });
+    }
+  };
+
+
+  useEffect(() => {
+    if (id)
+      getPerson();
+    else
+      setOperation("ADD");
+  }, []);
+
+  const getPerson = () => {
+    PersonService.get(id)
+      .then((response: any) => {
+        setPerson(response.data);
+        setOperation("");
         console.log(response.data);
       })
       .catch((e: Error) => {
@@ -47,6 +117,7 @@ const AddPerson: React.FC = () => {
 
   const newPerson = () => {
     setPerson(initialPersonState);
+    setOperation("ADD");
     setSubmitted(false);
   };
 
@@ -112,10 +183,25 @@ const AddPerson: React.FC = () => {
               name="phone"
             />
           </div>
+          {
+            operation && operation == 'ADD'
+            ? (
+              <button onClick={addPerson} className="btn btn-success">
+              ADD Person
+            </button>
+            )  
+            : (
+              <div>
+                <button onClick={updatePerson} className="btn btn-success">
+                  Update Person
+                </button>
 
-          <button onClick={savePerson} className="btn btn-success">
-            Submit
-          </button>
+                <button onClick={deletePerson} className="btn btn-success">
+                Delete Person
+                </button>
+             </div>   
+            )  
+          }
         </div>
       )}
     </div>
